@@ -24,7 +24,7 @@ let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
 setlocal indentkeys=0=always,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
-setlocal indentkeys==if,=elseif,=else
+setlocal indentkeys+==if,=else
 setlocal indentkeys+=!^B,o,O,0)
 
 " Only define the function once.
@@ -60,18 +60,25 @@ function GetVerilogIndent()
     let last_line = getline(v:lnum - 1)
     let ind = indent(v:lnum - 1)
 
-    if curr_line =~ '^\s*\<\(module\|endmodule\)\>' ||
-     \ curr_line =~ '^\s*\<\(function\|endfunction\)\>' ||
-     \ curr_line =~ '^\s*\<\(task\|endtask\)\>'
+    if curr_line =~ '\m^\s*\<\(module\|endmodule\)\>' ||
+     \ curr_line =~ '\m^\s*\<\(function\|endfunction\)\>' ||
+     \ curr_line =~ '\m^\s*\<\(task\|endtask\)\>'
         return 0
     endif
-    if last_line =~ '^\s*\n'
+    " TODO: Find a corresponding 'if' 
+    if curr_line =~ '\m^\s*\<else\>'
+        
+    endif
+    if last_line =~ '\m^\s*\n'
         return 0
     endif
-    if last_line =~ '^\s*\<\(always\|module\)\>'
+    if last_line =~ '\m^\s*\<\(always\|module\|function\|task\)\>'
         return ind + offset
     endif
-    if last_line =~ '\<\(if\|elseif\|else\)\>'
+    if last_line =~ '\m\<if\>\s\?[^;]*;\s\?\<else\>'
+        return ind
+    endif
+    if last_line =~ '\m\<\(if\|else\)\>'
         return ind + offset
     endif
 
