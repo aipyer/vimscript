@@ -59,26 +59,75 @@ function GetVerilogIndent()
     let curr_line = getline(v:lnum)
     let last_line = getline(v:lnum - 1)
     let ind = indent(v:lnum - 1)
+    let pat_com_pre_key     = '\m^\s*\<\(always\|module\|function\|task\)\>'
+    let pat_com_module_pair = '\m^\s*\<\(module\|endmodule\)\>'
+    let pat_com_func_pair   = '\m^\s*\<\(function\|endfunction\)\>'
+    let pat_com_task_pair   = '\m^\s*\<\(task\|endtask\)\>'
+    let pat_com_if_and_else = '\m\<if\>\s*(.*)[^;]*;\s*\<else\>\s\+[^;]*;'
+    let pat_com_if_or_else  = '\m\<\(if\|else\)\>'
+    let pat_com_pre_else    = '\m^\s*\<else\>'
+    let pat_com_blank_line  = '\m^\s*\n'
+    let pat_com_end         = '\m\<end\>'
+    let pat_com_begin       = '\m\<begin\>'
+    let pat_com_if          = '\m\<if\>'
+    let pat_com_begin_if    = '\m\<begin\>\(\s\+\|(.*)[^;]*\)\<if\>'
+    let pat_com_if_begin    = '\m\<if\>\s*\<begin\>'
 
-    if curr_line =~ '\m^\s*\<\(module\|endmodule\)\>' ||
-     \ curr_line =~ '\m^\s*\<\(function\|endfunction\)\>' ||
-     \ curr_line =~ '\m^\s*\<\(task\|endtask\)\>'
+
+    if curr_line =~ pat_com_module_pair ||
+     \ curr_line =~ pat_com_func_pair   ||
+     \ curr_line =~ pat_com_task_pair
         return 0
     endif
     " TODO: Find a corresponding 'if' 
-    if curr_line =~ '\m^\s*\<else\>'
-        
+    " Case 1:
+    " if (xxx) begin
+    "   if (xxx)
+    "       xxx
+    " end
+    " else xxx
+    "
+    " Case 2:
+    " if (xxx)
+    "   xxx
+    " else xxx
+    if curr_line =~ pat_com_pre_else
+        let begin_end_flag = 0      " no end, no begin
+        let i = 1
+        while i < v:lnum 
+            let line = getline(v:lnum - i)
+            if begin_end_flag == 0 
+                if line =~ pat_com_end
+                    let begin_end_flag = 1
+                elseif line =~ pat_com_if
+                    return indent(v:lnum - i)
+                endif
+            endif
+            if line =~ pat_com_begin
+                if line =~ pat_com_if_begin
+                    return indent(v:lnum - i)
+                else
+                    let begin_end_flag = 0
+                endif
+            endif
+            let i = i + 1
+        endwhile
     endif
-    if last_line =~ '\m^\s*\n'
+    " last line is composed of <Space>, <Tab>
+    if last_line =~ pat_com_blank_line
         return 0
     endif
-    if last_line =~ '\m^\s*\<\(always\|module\|function\|task\)\>'
+    " last line is preceded by module, always, function, task, and so on
+    "if last_line =~ '\m^\s*\<\(always\|module\|function\|task\)\>'
+    if last_line =~ pat_com_pre_key
         return ind + offset
     endif
-    if last_line =~ '\m\<if\>\s\?[^;]*;\s\?\<else\>'
+    " last line just like: if (xx) xxx; else xxx;
+    if last_line =~ pat_com_if_else
         return ind
     endif
-    if last_line =~ '\m\<\(if\|else\)\>'
+    " last line like: if or else
+    if last_line =~ pat_com_if_or_else
         return ind + offset
     endif
 
