@@ -24,6 +24,7 @@ let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
 setlocal indentkeys=0=always,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
+setlocal indentkeys+=0=begin,0=end
 setlocal indentkeys+==if,=else
 setlocal indentkeys+=!^B,o,O,0)
 
@@ -68,46 +69,81 @@ function GetVerilogIndent()
     let pat_com_pre_else    = '\m^\s*\<else\>'
     let pat_com_blank_line  = '\m^\s*\n'
     let pat_com_end         = '\m\<end\>'
+    let pat_com_pre_end     = '\m^\s*\<end\>'
     let pat_com_begin       = '\m\<begin\>'
+    let pat_com_pre_begin   = '\m^\s*\<begin\>'
     let pat_com_if          = '\m\<if\>'
     let pat_com_begin_if    = '\m\<begin\>\(\s\+\|(.*)[^;]*\)\<if\>'
     let pat_com_if_begin    = '\m\<if\>\s*\<begin\>'
 
 
+    " current line is preceded by 'module', 'function', 'task', and so on
     if curr_line =~ pat_com_module_pair ||
      \ curr_line =~ pat_com_func_pair   ||
      \ curr_line =~ pat_com_task_pair
         return 0
     endif
-    " TODO: Find a corresponding 'if' 
+    " current line is preceded by 'begin'
+    if curr_line =~ pat_com_pre_begin
+        if v:lnum > 1
+            return indent(v:lnum - 1)
+        endif
+    endif
+    " current line is preceded by 'end', find the corresponding 'begin'
+    if curr_line =~ pat_com_pre_end
+        let begin_idx = -1
+        let i = 1
+        while i < v:lnum
+            let line = getline(v:lnum - i)
+            if begin_idx == -1
+                if line =~ pat_com_begin
+                    return indent(v:lnum - i)
+                elseif line =~ pat_com_end
+                    let begin_idx = begin_idx - 1
+                endif
+            else
+                if line =~ pat_com_begin
+                    let begin_idx = begin_idx + 1
+                elseif line =~ pat_com_end
+                    let begin_idx = begin_idx - 1
+                endif
+            endif
+            let i = i + 1
+        endwhile
+    endif
+            
+    " current line is preceded by 'else', find the corresponding 'if'
     " Case 1:
     " if (xxx) begin
-    "   if (xxx)
-    "       xxx
+    "     if (xxx)
+    "         xxx;
     " end
-    " else xxx
+    " else 
+    "     xxx;
     "
     " Case 2:
     " if (xxx)
-    "   xxx
-    " else xxx
+    "     xxx;
+    " else 
+    "     xxx;
     if curr_line =~ pat_com_pre_else
         let begin_end_flag = 0      " no end, no begin
         let i = 1
         while i < v:lnum 
             let line = getline(v:lnum - i)
             if begin_end_flag == 0 
-                if line =~ pat_com_end
+                if line =~ pat_com_end 
                     let begin_end_flag = 1
                 elseif line =~ pat_com_if
                     return indent(v:lnum - i)
                 endif
-            endif
-            if line =~ pat_com_begin
-                if line =~ pat_com_if_begin
-                    return indent(v:lnum - i)
-                else
-                    let begin_end_flag = 0
+            else
+                if line =~ pat_com_begin
+                    if line =~ pat_com_if_begin
+                        return indent(v:lnum - i)
+                    else
+                        let begin_end_flag = 0
+                    endif
                 endif
             endif
             let i = i + 1
@@ -117,7 +153,11 @@ function GetVerilogIndent()
     if last_line =~ pat_com_blank_line
         return 0
     endif
-    " last line is preceded by module, always, function, task, and so on
+    " last line is preceded by 'begin'
+    if last_line =~ pat_com_pre_begin
+        return ind + offset
+    endif
+    " last line is preceded by 'module', 'always', 'function', 'task', and so on
     "if last_line =~ '\m^\s*\<\(always\|module\|function\|task\)\>'
     if last_line =~ pat_com_pre_key
         return ind + offset
