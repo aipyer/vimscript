@@ -23,7 +23,7 @@ endif
 let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
-setlocal indentkeys=0=always,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
+setlocal indentkeys=0=always,0=initial,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
 setlocal indentkeys+=0=begin,0=end
 setlocal indentkeys+==if,=else
 setlocal indentkeys+=!^B,o,O,0)
@@ -60,7 +60,7 @@ function GetVerilogIndent()
     let curr_line = getline(v:lnum)
     let last_line = getline(v:lnum - 1)
     let ind = indent(v:lnum - 1)
-    let pat_com_pre_key     = '\m^\s*\<\(always\|module\|function\|task\)\>'
+    let pat_com_pre_key     = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
     let pat_com_module_pair = '\m^\s*\<\(module\|endmodule\)\>'
     let pat_com_func_pair   = '\m^\s*\<\(function\|endfunction\)\>'
     let pat_com_task_pair   = '\m^\s*\<\(task\|endtask\)\>'
