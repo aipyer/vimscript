@@ -1,7 +1,7 @@
 " Language:     Verilog HDL
-" Maintainer:	Chih-Tsun Huang <cthuang@cs.nthu.edu.tw>
-" Last Change:	2017 Aug 25 by Chih-Tsun Huang
-" URL:		    http://www.cs.nthu.edu.tw/~cthuang/vim/indent/verilog.vim
+" Maintainer:    Chih-Tsun Huang <cthuang@cs.nthu.edu.tw>
+" Last Change:    2017 Aug 25 by Chih-Tsun Huang
+" URL:            http://www.cs.nthu.edu.tw/~cthuang/vim/indent/verilog.vim
 "
 " Credits:
 "   Suggestions for improvement, bug reports by
@@ -11,7 +11,7 @@
 "
 " Buffer Variables:
 "     b:verilog_indent_modules : indenting after the declaration
-"				 of module blocks
+"                 of module blocks
 "     b:verilog_indent_width   : indenting width
 "     b:verilog_indent_verbose : verbose to each indenting
 "
@@ -32,6 +32,8 @@ setlocal indentkeys+=!^B,o,O,0)
 if exists("*GetVerilogIndent")
   finish
 endif
+
+
 
 let s:cpo_save = &cpo
 set cpo&vim
@@ -60,6 +62,8 @@ function GetVerilogIndent()
     let curr_line = getline(v:lnum)
     let last_line = getline(v:lnum - 1)
     let ind = indent(v:lnum - 1)
+
+    " NOTE: By default, 'begin' and 'end' is never on the same line
     let pat_com_pre_key     = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
     let pat_com_module_pair = '\m^\s*\<\(module\|endmodule\)\>'
     let pat_com_func_pair   = '\m^\s*\<\(function\|endfunction\)\>'
@@ -73,9 +77,7 @@ function GetVerilogIndent()
     let pat_com_begin       = '\m\<begin\>'
     let pat_com_pre_begin   = '\m^\s*\<begin\>'
     let pat_com_if          = '\m\<if\>'
-    let pat_com_begin_if    = '\m\<begin\>\(\s\+\|(.*)[^;]*\)\<if\>'
     let pat_com_if_begin    = '\m\<if\>\s*\<begin\>'
-
 
     " current line is preceded by 'module', 'function', 'task', and so on
     if curr_line =~ pat_com_module_pair ||
