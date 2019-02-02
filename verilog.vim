@@ -1,13 +1,10 @@
-" Language:     Verilog HDL
-" Maintainer:    Chih-Tsun Huang <cthuang@cs.nthu.edu.tw>
-" Last Change:    2017 Aug 25 by Chih-Tsun Huang
-" URL:            http://www.cs.nthu.edu.tw/~cthuang/vim/indent/verilog.vim
+" Language:    Verilog HDL
+" Maintainer:  Kody He <kody.he@hotmail.com>
+" Last Change: 
+" URL:         http://www.cs.nthu.edu.tw/~cthuang/vim/indent/verilog.vim
 "
 " Credits:
 "   Suggestions for improvement, bug reports by
-"     Takuya Fujiwara <tyru.exe@gmail.com>
-"     Thilo Six <debian@Xk2c.de>
-"     Leo Butlero <lbutler@brocade.com>
 "
 " Buffer Variables:
 "     b:verilog_indent_modules : indenting after the declaration
@@ -24,7 +21,8 @@ let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
 setlocal indentkeys=0=always,0=initial,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
-setlocal indentkeys+=0=begin,0=end
+setlocal indentkeys+=0=begin,0=end,0=case,0=endcase
+setlocal indentkeys+=0=assign,0=input,0=output,0=inout,0=wire,0=reg
 setlocal indentkeys+==if,=else
 setlocal indentkeys+=!^B,o,O,0)
 
@@ -64,6 +62,7 @@ function GetVerilogIndent()
     let ind = indent(v:lnum - 1)
 
     " NOTE: By default, 'begin' and 'end' is never on the same line
+    "       By default, 'case' and 'endcase' never supports nested usage
     let pat_com_pre_key     = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
     let pat_com_module_pair = '\m^\s*\<\(module\|endmodule\)\>'
     let pat_com_func_pair   = '\m^\s*\<\(function\|endfunction\)\>'
@@ -78,6 +77,14 @@ function GetVerilogIndent()
     let pat_com_pre_begin   = '\m^\s*\<begin\>'
     let pat_com_if          = '\m\<if\>'
     let pat_com_if_begin    = '\m\<if\>\s*\<begin\>'
+    let pat_com_pre_case    = '\m^\s*\<case\>'
+    let pat_com_pre_endcase = '\m^\s*\<endcase\>'
+    let pat_com_pre_assign  = '\m^\s*\<assign\>'
+    let pat_com_pre_input   = '\m^\s*\<input\>'
+    let pat_com_pre_output  = '\m^\s*\<output\>'
+    let pat_com_pre_inout   = '\m^\s*\<inout\>'
+    let pat_com_pre_wire    = '\m^s\*\<wire\>'
+    let pat_com_pre_reg     = '\m^s\*\<reg\>'
 
     " current line is preceded by 'module', 'function', 'task', and so on
     if curr_line =~ pat_com_module_pair ||
@@ -113,7 +120,6 @@ function GetVerilogIndent()
             let i = i + 1
         endwhile
     endif
-            
     " current line is preceded by 'else', find the corresponding 'if'
     " Case 1:
     " if (xxx) begin
@@ -151,6 +157,28 @@ function GetVerilogIndent()
             let i = i + 1
         endwhile
     endif
+    " current line is preceded by 'endcase'
+    if curr_line =~ pat_com_pre_endcase
+        for i in range(1, v:lnum - 1)
+            let line = getline(v:lnum - i)
+            if line =~ pat_com_pre_case
+                return indent(v:lnum - i)
+            endif
+        endfor
+    endif
+    " current line is preceded by 'input', 'output', 'inout', 'wire', 'reg'
+    " and so on
+    if curr_line =~ pat_com_pre_input ||
+     \ curr_inne =~ pat_com_pre_output ||
+     \ curr_line =~ pat_com_pre_inout ||
+     \ curr_line =~ pat_com_pre_wire ||
+     \ curr_line =~ pat_com_pre_reg 
+        return 0
+    endif
+    " current line is preceded by 'assign'
+    if curr_line =~ pat_com_pre_assign
+        reutrn 0
+    endif
     " last line is composed of <Space>, <Tab>
     if last_line =~ pat_com_blank_line
         return 0
@@ -170,6 +198,10 @@ function GetVerilogIndent()
     endif
     " last line like: if or else
     if last_line =~ pat_com_if_or_else
+        return ind + offset
+    endif
+    " last line is preceded by 'case'
+    if last_line =~ pat_com_pre_case
         return ind + offset
     endif
 
