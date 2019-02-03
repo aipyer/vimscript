@@ -1,7 +1,7 @@
 " Language:    Verilog HDL
 " Maintainer:  Kody He <kody.he@hotmail.com>
 " Last Change: 
-" URL:         http://www.cs.nthu.edu.tw/~cthuang/vim/indent/verilog.vim
+" URL:         https://github.com/wolikang/vimscript/indent
 "
 " Credits:
 "   Suggestions for improvement, bug reports by
@@ -21,17 +21,17 @@ let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
 setlocal indentkeys=0=always,0=initial,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
+setlocal indentkeys=0=generate,0=endgenerate,0=specify,0=endspecify
 setlocal indentkeys+=0=begin,0=end,0=case,0=endcase
 setlocal indentkeys+=0=assign,0=input,0=output,0=inout,0=wire,0=reg
 setlocal indentkeys+==if,=else
+setlocal indentkeys+=0=localparam,0=parameter
 setlocal indentkeys+=!^B,o,O,0)
 
 " Only define the function once.
 if exists("*GetVerilogIndent")
   finish
 endif
-
-
 
 let s:cpo_save = &cpo
 set cpo&vim
@@ -63,33 +63,41 @@ function GetVerilogIndent()
 
     " NOTE: By default, 'begin' and 'end' is never on the same line
     "       By default, 'case' and 'endcase' never supports nested usage
-    let pat_com_pre_key     = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
-    let pat_com_module_pair = '\m^\s*\<\(module\|endmodule\)\>'
-    let pat_com_func_pair   = '\m^\s*\<\(function\|endfunction\)\>'
-    let pat_com_task_pair   = '\m^\s*\<\(task\|endtask\)\>'
-    let pat_com_if_and_else = '\m\<if\>\s*(.*)[^;]*;\s*\<else\>\s\+[^;]*;'
-    let pat_com_if_or_else  = '\m\<\(if\|else\)\>'
-    let pat_com_pre_else    = '\m^\s*\<else\>'
-    let pat_com_blank_line  = '\m^\s*\n'
-    let pat_com_end         = '\m\<end\>'
-    let pat_com_pre_end     = '\m^\s*\<end\>'
-    let pat_com_begin       = '\m\<begin\>'
-    let pat_com_pre_begin   = '\m^\s*\<begin\>'
-    let pat_com_if          = '\m\<if\>'
-    let pat_com_if_begin    = '\m\<if\>\s*\<begin\>'
-    let pat_com_pre_case    = '\m^\s*\<case\>'
-    let pat_com_pre_endcase = '\m^\s*\<endcase\>'
-    let pat_com_pre_assign  = '\m^\s*\<assign\>'
-    let pat_com_pre_input   = '\m^\s*\<input\>'
-    let pat_com_pre_output  = '\m^\s*\<output\>'
-    let pat_com_pre_inout   = '\m^\s*\<inout\>'
-    let pat_com_pre_wire    = '\m^s\*\<wire\>'
-    let pat_com_pre_reg     = '\m^s\*\<reg\>'
+    let pat_com_pre_key             = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
+    let pat_com_module_pair         = '\m^\s*\<\(module\|endmodule\)\>'
+    let pat_com_func_pair           = '\m^\s*\<\(function\|endfunction\)\>'
+    let pat_com_task_pair           = '\m^\s*\<\(task\|endtask\)\>'
+    let pat_com_generate_pair       = '\m^\s*\<\(generate\|endgenerate\)\>'
+    let pat_com_specify_pair        = '\m^\s*\<\(specify\|endspecify\)\>'
+    let pat_com_if_and_else         = '\m\<if\>\s*(.*)[^;]*;\s*\<else\>\s\+[^;]*;'
+    let pat_com_if_or_else          = '\m\<\(if\|else\)\>'
+    let pat_com_pre_else            = '\m^\s*\<else\>'
+    let pat_com_blank_line          = '\m^\s*\n'
+    let pat_com_end                 = '\m\<end\>'
+    let pat_com_pre_end             = '\m^\s*\<end\>'
+    let pat_com_begin               = '\m\<begin\>'
+    let pat_com_pre_begin           = '\m^\s*\<begin\>'
+    let pat_com_if                  = '\m\<if\>'
+    let pat_com_if_begin            = '\m\<if\>\s*\<begin\>'
+    let pat_com_pre_case            = '\m^\s*\<case\>'
+    let pat_com_pre_endcase         = '\m^\s*\<endcase\>'
+    let pat_com_pre_assign          = '\m^\s*\<assign\>'
+    let pat_com_pre_input           = '\m^\s*\<input\>'
+    let pat_com_pre_output          = '\m^\s*\<output\>'
+    let pat_com_pre_inout           = '\m^\s*\<inout\>'
+    let pat_com_pre_wire            = '\m^\s*\<wire\>'
+    let pat_com_pre_reg             = '\m^\s*\<reg\>'
+    let pat_com_pre_param           = '\m^\s*\<\(parameter\|localparam\)\>'
+    let pat_com_inst_param          = '\m^\s*[a-zA-Z][a-zA-Z0-9_]*\s*#('
+    let pat_com_pre_right_brackets  = '\m^\s*)'
+    let pat_com_left_brackets       = '\m(\(\/\/.*\|\s*\)$'
 
     " current line is preceded by 'module', 'function', 'task', and so on
     if curr_line =~ pat_com_module_pair ||
      \ curr_line =~ pat_com_func_pair   ||
-     \ curr_line =~ pat_com_task_pair
+     \ curr_line =~ pat_com_task_pair   ||
+     \ curr_line =~ pat_com_generate_pair ||
+     \ curr_line =~ pat_com_specify_pair
         return 0
     endif
     " current line is preceded by 'begin'
@@ -175,9 +183,17 @@ function GetVerilogIndent()
      \ curr_line =~ pat_com_pre_reg 
         return 0
     endif
+    " current line is preceded by 'parameter', 'localparam'
+    if curr_line =~ pat_com_pre_param
+        return 0
+    endif
     " current line is preceded by 'assign'
     if curr_line =~ pat_com_pre_assign
         reutrn 0
+    endif
+    " current line is preceded by ')'
+    if curr_line =~ pat_com_pre_right_brackets
+        return 0
     endif
     " last line is composed of <Space>, <Tab>
     if last_line =~ pat_com_blank_line
@@ -188,7 +204,6 @@ function GetVerilogIndent()
         return ind + offset
     endif
     " last line is preceded by 'module', 'always', 'function', 'task', and so on
-    "if last_line =~ '\m^\s*\<\(always\|module\|function\|task\)\>'
     if last_line =~ pat_com_pre_key
         return ind + offset
     endif
@@ -202,6 +217,14 @@ function GetVerilogIndent()
     endif
     " last line is preceded by 'case'
     if last_line =~ pat_com_pre_case
+        return ind + offset
+    endif
+    " last line like: xxx #(
+    if last_line =~ pat_com_inst_param
+        return ind + offset
+    endif
+    " last line like: ...(
+    if last_line =~ pat_com_left_brackets
         return ind + offset
     endif
 
