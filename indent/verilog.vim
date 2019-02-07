@@ -1,21 +1,21 @@
 " Language:    Verilog HDL
 " Maintainer:  Kody He <kody.he@hotmail.com>
 " Last Change: 
-" URL:         https://github.com/wolikang/vimscript/indent
+" URL:         https://github.com/wolikang/vimscript/indent/verilog.vim
 "
 " Credits:
 "   Suggestions for improvement, bug reports by
 "
 " Buffer Variables:
-"     b:verilog_indent_modules : indenting after the declaration
-"                 of module blocks
 "     b:verilog_indent_width   : indenting width
-"     b:verilog_indent_verbose : verbose to each indenting
 "
+" TODO:
+"   1. Support macro definition like '`if', '`else', etc.
+"   2. 
 
 " Only load this indent file when no other was loaded.
 if exists("b:did_indent")
-  finish
+    finish
 endif
 let b:did_indent = 1
 
@@ -43,19 +43,6 @@ function GetVerilogIndent()
     else
         let offset = shiftwidth()
     endif
-    if exists('b:verilog_indent_modules')
-        let indent_modules = offset
-    else
-        let indent_module = 0
-    endif
-
-    " Find a non-black line above the current line.
-    "let lnum = prevnonblank(v:lnum - 1)
-
-    " At the start of the file use zero indent.
-    "if lnum == 0
-    "    return 0
-    "endif
 
     let curr_line = getline(v:lnum)
     let last_line = getline(v:lnum - 1)
@@ -78,7 +65,7 @@ function GetVerilogIndent()
     let pat_com_begin               = '\m\<begin\>'
     let pat_com_pre_begin           = '\m^\s*\<begin\>'
     let pat_com_if                  = '\m\<if\>'
-    let pat_com_if_begin            = '\m\<if\>\s*\<begin\>'
+    let pat_com_if_begin            = '\m\<if\>\s*(.*)\s*\<begin\>'
     let pat_com_pre_case            = '\m^\s*\<case\>'
     let pat_com_pre_endcase         = '\m^\s*\<endcase\>'
     let pat_com_pre_assign          = '\m^\s*\<assign\>'
@@ -90,13 +77,14 @@ function GetVerilogIndent()
     let pat_com_pre_param           = '\m^\s*\<\(parameter\|localparam\)\>'
     let pat_com_inst_param          = '\m^\s*[a-zA-Z][a-zA-Z0-9_]*\s*#('
     let pat_com_pre_right_brackets  = '\m^\s*)'
-    let pat_com_left_brackets       = '\m(\(\/\/.*\|\s*\)$'
+    let pat_com_left_brackets       = '\m(\(\/\/.*\|\/\*.*\*\/\|\s*\)$'
+    let pat_com_left_right_brackets = '\m\((\|)\)'
 
-    " current line is preceded by 'module', 'function', 'task', and so on
-    if curr_line =~ pat_com_module_pair ||
-     \ curr_line =~ pat_com_func_pair   ||
-     \ curr_line =~ pat_com_task_pair   ||
-     \ curr_line =~ pat_com_generate_pair ||
+    " current line is preceded by 'module', 'function', 'task', etc.
+    if curr_line =~ pat_com_module_pair     ||
+     \ curr_line =~ pat_com_func_pair       ||
+     \ curr_line =~ pat_com_task_pair       ||
+     \ curr_line =~ pat_com_generate_pair   ||
      \ curr_line =~ pat_com_specify_pair
         return 0
     endif
@@ -107,6 +95,22 @@ function GetVerilogIndent()
         endif
     endif
     " current line is preceded by 'end', find the corresponding 'begin'
+    " Case 1:
+    " begin
+    "     ...
+    " end
+    "
+    " Case 2: nested usage
+    " begin
+    "     ...
+    "     begin
+    "         ...
+    "     end
+    "     ...
+    " end
+    "
+    " Case 3: (No Support)
+    " begin xxx; end
     if curr_line =~ pat_com_pre_end
         let begin_idx = -1
         let i = 1
@@ -142,24 +146,37 @@ function GetVerilogIndent()
     "     xxx;
     " else 
     "     xxx;
+    "
+    " Case 3: (No Support)
+    " if (xxx) begin
+    "     sss;
+    " end else begin
+    "     sss;
+    " end
     if curr_line =~ pat_com_pre_else
-        let begin_end_flag = 0      " no end, no begin
+        let begin_idx = 0                       " no end, no begin
         let i = 1
         while i < v:lnum 
             let line = getline(v:lnum - i)
-            if begin_end_flag == 0 
+            if begin_idx == 0 
                 if line =~ pat_com_end 
-                    let begin_end_flag = 1
+                    let begin_idx = begin_idx - 1
                 elseif line =~ pat_com_if
                     return indent(v:lnum - i)
                 endif
             else
                 if line =~ pat_com_begin
                     if line =~ pat_com_if_begin
-                        return indent(v:lnum - i)
+                        if begin_idx == -1
+                            return indent(v:lnum - i)
+                        else
+                            let begin_idx = begin_idx + 1
+                        endif
                     else
-                        let begin_end_flag = 0
+                        let begin_idx = begin_idx + 1
                     endif
+                elseif line =~ pat_com_end
+                    let begin_idx = begin_idx - 1
                 endif
             endif
             let i = i + 1
@@ -174,12 +191,12 @@ function GetVerilogIndent()
             endif
         endfor
     endif
-    " current line is preceded by 'input', 'output', 'inout', 'wire', 'reg'
-    " and so on
-    if curr_line =~ pat_com_pre_input ||
-     \ curr_inne =~ pat_com_pre_output ||
-     \ curr_line =~ pat_com_pre_inout ||
-     \ curr_line =~ pat_com_pre_wire ||
+    " current line is preceded by 'input', 'output', 'inout', 'wire', 'reg',
+    " etc.
+    if curr_line =~ pat_com_pre_input   ||
+     \ curr_inne =~ pat_com_pre_output  ||
+     \ curr_line =~ pat_com_pre_inout   ||
+     \ curr_line =~ pat_com_pre_wire    ||
      \ curr_line =~ pat_com_pre_reg 
         return 0
     endif
@@ -193,7 +210,16 @@ function GetVerilogIndent()
     endif
     " current line is preceded by ')'
     if curr_line =~ pat_com_pre_right_brackets
-        return 0
+        let left_brackets_idx = -1
+        let i = 1
+        while i < v:lnum
+            let line = getline(v:lnum - i)
+            if left_brackets_idx == -1
+                if line =~ pat_com_left_right_brackets
+                    
+                endif
+            endif
+        endwhile
     endif
     " last line is composed of <Space>, <Tab>
     if last_line =~ pat_com_blank_line
@@ -203,7 +229,7 @@ function GetVerilogIndent()
     if last_line =~ pat_com_pre_begin
         return ind + offset
     endif
-    " last line is preceded by 'module', 'always', 'function', 'task', and so on
+    " last line is preceded by 'module', 'always', 'function', 'task', etc.
     if last_line =~ pat_com_pre_key
         return ind + offset
     endif
