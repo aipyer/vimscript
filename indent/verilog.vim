@@ -21,7 +21,7 @@ let b:did_indent = 1
 
 setlocal indentexpr=GetVerilogIndent()
 setlocal indentkeys=0=always,0=initial,0=module,0=endmodule,0=function,0=endfunction,0=task,0=endtask
-setlocal indentkeys=0=generate,0=endgenerate,0=specify,0=endspecify
+setlocal indentkeys+=0=generate,0=endgenerate,0=specify,0=endspecify
 setlocal indentkeys+=0=begin,0=end,0=case,0=endcase
 setlocal indentkeys+=0=assign,0=input,0=output,0=inout,0=wire,0=reg
 setlocal indentkeys+==if,=else
