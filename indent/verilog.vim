@@ -24,7 +24,7 @@ setlocal indentkeys=0=always,0=initial,0=module,0=endmodule,0=function,0=endfunc
 setlocal indentkeys+=0=generate,0=endgenerate,0=specify,0=endspecify
 setlocal indentkeys+=0=begin,0=end,0=case,0=endcase
 setlocal indentkeys+=0=assign,0=input,0=output,0=inout,0=wire,0=reg
-setlocal indentkeys+==if,=else
+setlocal indentkeys+=0=if,0=else
 setlocal indentkeys+=0=localparam,0=parameter
 setlocal indentkeys+=!^B,o,O,0)
 
@@ -51,6 +51,7 @@ function GetVerilogIndent()
     " NOTE: By default, 'begin' and 'end' is never on the same line
     "       By default, 'case' and 'endcase' never supports nested usage
     let pat_com_pre_key             = '\m^\s*\<\(always\|initial\|module\|function\|task\)\>'
+    let pat_com_pre_always_initial  = '\m^\s*\<\(always\|initial\)\>'
     let pat_com_module_pair         = '\m^\s*\<\(module\|endmodule\)\>'
     let pat_com_func_pair           = '\m^\s*\<\(function\|endfunction\)\>'
     let pat_com_task_pair           = '\m^\s*\<\(task\|endtask\)\>'
@@ -80,6 +81,10 @@ function GetVerilogIndent()
     let pat_com_left_brackets       = '\m(\(\/\/.*\|\/\*.*\*\/\|\s*\)$'
     let pat_com_left_right_brackets = '\m\((\|)\)'
 
+    " current line is preceded by 'always', 'initial', etc.
+    if curr_line =~ pat_com_pre_always_initial
+        return 0
+    endif
     " current line is preceded by 'module', 'function', 'task', etc.
     if curr_line =~ pat_com_module_pair     ||
      \ curr_line =~ pat_com_func_pair       ||
