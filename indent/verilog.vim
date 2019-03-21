@@ -216,15 +216,14 @@ function GetVerilogIndent()
     " current line is preceded by ')'
     if curr_line =~ pat_com_pre_right_brackets
         let left_brackets_idx = -1
-        let i = 1
-        while i < v:lnum
+        for i in range(1, v:lnum - 1)
             let line = getline(v:lnum - i)
             if left_brackets_idx == -1
                 if line =~ pat_com_left_right_brackets
                     
                 endif
             endif
-        endwhile
+        endfor
     endif
     " last line is composed of <Space>, <Tab>
     if last_line =~ pat_com_blank_line
