@@ -1,0 +1,15 @@
+
+
+1. 对于reg型的变量赋值，应尽量满足如下形式1：
+    if(condition_1)
+        xxx <= xxx;
+    else if(condition_2)
+        xxx <= xxx;
+而不要采用以下这种形式2：
+    if(condition_1)
+        xxx <= xxx;
+    else
+        xxx <= xxx;
+尤其是对于那些变量位宽很大的，一定要采用形式1。
+
+
