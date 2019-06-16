@@ -80,6 +80,8 @@ function GetVerilogIndent()
     let pat_com_pre_right_brackets  = '\m^\s*)'
     let pat_com_left_brackets       = '\m(\(\/\/.*\|\/\*.*\*\/\|\s*\)$'
     let pat_com_left_right_brackets = '\m\((\|)\)'
+    let pat_com_pre_case_branch     = '\m^\s*[a-zA-Z_][a-zA-Z0-9_]*:'
+    let pat_com_post_begin          = '\m\<begin\>\s*$'
 
     " current line is preceded by 'always', 'initial', etc.
     if curr_line =~ pat_com_pre_always_initial
@@ -230,7 +232,8 @@ function GetVerilogIndent()
         return 0
     endif
     " last line is preceded by 'begin'
-    if last_line =~ pat_com_pre_begin
+    "if last_line =~ pat_com_pre_begin
+    if last_line =~ pat_com_post_begin
         return ind + offset
     endif
     " last line is preceded by 'module', 'always', 'function', 'task', etc.
