@@ -248,6 +248,10 @@ function GetVerilogIndent()
     if last_line =~ pat_com_if_or_else
         return ind + offset
     endif
+    " last line is a branch of 'case' condition
+    if last_line =~ pat_com_pre_case_branch
+        return ind + offset
+    endif
     " last line is preceded by 'case'
     if last_line =~ pat_com_pre_case
         return ind + offset
