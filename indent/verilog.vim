@@ -213,7 +213,7 @@ function GetVerilogIndent()
     endif
     " current line is preceded by 'assign'
     if curr_line =~ pat_com_pre_assign
-        reutrn 0
+        return 0
     endif
     " current line is preceded by ')'
     if curr_line =~ pat_com_pre_right_brackets
